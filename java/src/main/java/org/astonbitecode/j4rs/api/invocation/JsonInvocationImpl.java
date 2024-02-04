@@ -257,7 +257,7 @@ public class JsonInvocationImpl<T> implements Instance<T> {
                 // Match the params number
                 .filter(m -> m.getGenericParameterTypes().length == argTypes.length)
                 // Match the actual parameters
-                .filter(m -> {
+                /*.filter(m -> {
                     // Each element of the matchedParams list shows whether a parameter is matched
                     // or not
                     List<Boolean> matchedParams = new ArrayList<>();
@@ -296,14 +296,21 @@ public class JsonInvocationImpl<T> implements Instance<T> {
                         }
                     }
                     return matchedParams.stream().allMatch(Boolean::booleanValue);
-                }).collect(Collectors.toList());
+                })*/.collect(Collectors.toList());
         if (!found.isEmpty()) {
+            if (found.size() > 1) {
+                StringBuilder options = new StringBuilder();
+                for (Method m: found) {
+                    options.append(m.toString()).append(", ");
+                }
+                System.out.println("Found 2 matching methods and only using the first.  Options are: " + options);
+            }
             return found.get(0);
         } else {
             Class<?> superclass = clazz.getSuperclass();
             if (superclass == null) {
                 throw new NoSuchMethodException(
-                        "Method " + methodName + " was not found in " + this.clazz.getName() + " or its ancestors.");
+                        "J4Rs could not resolve Method " + methodName + " was not found in " + this.clazz.getName() + " or its ancestors.");
             }
             return findMethodInHierarchy(superclass, methodName, argTypes);
         }

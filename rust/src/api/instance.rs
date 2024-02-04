@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use crate::logger::debug;
-use crate::{cache, errors, jni_utils, InvocationArg, Jvm};
+use crate::{cache, errors, jni_utils, jstring_to_rust_string, InvocationArg, Jvm};
 use jni_sys::jobject;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -55,6 +55,30 @@ impl Instance {
     pub fn java_object(mut self) -> jobject {
         self.skip_deleting_jobject = true;
         self.jinstance
+    }
+
+    pub fn borrow_java_object(&self) -> &jobject {
+        &self.jinstance
+    }
+
+    /// Special handling of allowing an instance to persist after the rust Drop
+    /// Only use this when forming Arrays of Instances
+    pub fn skip_delete(&mut self) -> () {
+        self.skip_deleting_jobject = true;
+    }
+
+    /// Determine whether the Instance represents the java null value;
+    pub fn is_null(&self) -> bool {
+        //let _jvm = cache::get_thread_local_env().map_err(|_| Jvm::attach_thread());
+        let jvm = Jvm::attach_thread().unwrap();
+        jobject::is_null(self.jinstance)
+            || unsafe {
+                (cache::get_is_same_object().unwrap())(
+                    jvm.jni_env,
+                    self.jinstance,
+                    0_u64 as jobject,
+                ) == 1_u8
+            }
     }
 
     #[deprecated(
@@ -106,6 +130,11 @@ impl Instance {
             skip_deleting_jobject: false,
         })
     }
+
+    pub fn get_string(&self) -> String {
+        let n = Jvm::attach_thread().unwrap();
+        jstring_to_rust_string(&n, self.jinstance).unwrap()
+    }
 }
 
 impl TryFrom<InvocationArg> for Instance {
@@ -123,6 +152,16 @@ impl Drop for Instance {
             if let Some(j_env) = cache::get_thread_local_env_opt() {
                 jni_utils::delete_java_ref(j_env, self.jinstance);
             }
+        }
+    }
+}
+
+impl Clone for Instance {
+    fn clone(&self) -> Self {
+        Self {
+            class_name: self.class_name.clone(),
+            jinstance: self.jinstance.clone(),
+            skip_deleting_jobject: true,
         }
     }
 }
