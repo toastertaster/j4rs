@@ -127,6 +127,16 @@ impl Drop for Instance {
     }
 }
 
+impl Clone for Instance {
+    fn clone(&self) -> Self {
+        Self {
+            class_name: self.class_name.clone(),
+            jinstance: self.jinstance.clone(),
+            skip_deleting_jobject: true,
+        }
+    }
+}
+
 unsafe impl Send for Instance {}
 
 /// A receiver for Java Instances.

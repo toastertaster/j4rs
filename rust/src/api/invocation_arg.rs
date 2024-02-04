@@ -283,6 +283,18 @@ impl From<Instance> for InvocationArg {
     }
 }
 
+impl From<&Instance> for InvocationArg {
+    fn from(instance: &Instance) -> Self {
+        let class_name = instance.class_name.to_owned();
+
+        InvocationArg::Java {
+            instance: instance.clone(),
+            class_name: class_name,
+            serialized: false,
+        }
+    }
+}
+
 impl TryFrom<Result<Instance, errors::J4RsError>> for InvocationArg {
     type Error = errors::J4RsError;
 
